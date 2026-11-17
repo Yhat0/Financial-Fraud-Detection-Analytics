@@ -1,0 +1,39 @@
+# Orquestacion de los 3 servicios. ANTES de `docker compose up --build` genera en el host:
+#   cd Model && .venv/Scripts/python train_and_export.py && .venv/Scripts/python generate_alerts.py
+# (crea Model/models/*.joblib y resultados/alertas.db; el dataset y el entrenamiento NO van en las imagenes).
+# Las claves de abajo son DEV: en cualquier uso real cambialas (y no las pongas en el repo).
+services:
+  scoring:
+    build: ./Model
+    environment:
+      SCORING_API_KEY: ${SCORING_API_KEY:-dev-key-change-me}
+    volumes:
+      - ./Model/models:/app/Model/models:ro
+    expose: ["8000"]          # solo red interna: la API lo alcanza como http://scoring:8000
+    restart: unless-stopped
+
+  api:
+    build: ./api
+    depends_on:
+      scoring:
+        condition: service_healthy
+    environment:
+      ApiKey: ${API_KEY:-dev-key-change-me}
+      ScoringApiKey: ${SCORING_API_KEY:-dev-key-change-me}
+      PythonServiceUrl: http://scoring:8000
+      AlertsDbPath: /data/alertas.db
+      CorsOrigins__0: http://localhost:5173
+    volumes:
+      - ./resultados/alertas.db:/data/alertas.db:ro
+    ports: ["5055:5055"]
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+      args:
+        VITE_API_URL: http://localhost:5055/api/v1
+        VITE_API_KEY: ${API_KEY:-dev-key-change-me}
+    depends_on: [api]
+    ports: ["5173:80"]
+    restart: unless-stopped

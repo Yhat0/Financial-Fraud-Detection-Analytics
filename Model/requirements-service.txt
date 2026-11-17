@@ -1,0 +1,8 @@
+# Dependencias minimas del servicio de scoring (mismas versiones que requirements.txt: los
+# modelos .joblib deben cargarse con la misma version de scikit-learn con que se entrenaron).
+pandas==3.1.1
+numpy==2.5.5
+scipy==1.18.1
+scikit-learn==1.9.1
+fastapi==0.163.1
+uvicorn==0.54.0
